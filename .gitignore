@@ -1,5 +1,6 @@
 .DS_Store
 *.sw[poe]
 data
+tub
 models
 *.mp4
