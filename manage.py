@@ -26,6 +26,7 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import TubGroup, TubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
+from velocity_detector import make_speed_detector
 
 
 def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
@@ -75,6 +76,15 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
     pilot_condition_part = Lambda(pilot_condition)
     V.add(pilot_condition_part, inputs=['user/mode'],
                                 outputs=['run_pilot'])
+
+    # Add velocity detector
+    vd = Lambda(make_velocity_detector)
+    V.add(vd, inputs=['cam/image_array'], outputs=['user/velocity'])
+
+    def print_velocity(v):
+        print('velocity:', v)
+    pv = Lambda(print_velocity)
+    V.add(pv, inputs=['user/velocity'])
 
     # Run the pilot if the mode is not user.
     kl = KerasCategorical()

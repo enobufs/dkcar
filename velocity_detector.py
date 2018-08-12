@@ -27,7 +27,7 @@ DST_LR = [WIDTH, HEIGHT]
 
 DISPLACEMENT_CUTOFF = 0.2
 
-def make_speed_detector():
+def make_velocity_detector():
     """Speed detector factory."""
 
     pts1 = np.float32([SRC_UL, SRC_LL, SRC_UR, SRC_LR])
@@ -76,6 +76,4 @@ def make_speed_detector():
         return v_last
 
     return detect
-
-get_speed = make_speed_detector()
 
