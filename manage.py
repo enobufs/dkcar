@@ -16,6 +16,7 @@ import os
 from docopt import docopt
 
 import donkeycar as dk
+import time
 
 #import parts
 from donkeycar.parts.camera import PiCamera
@@ -40,8 +41,11 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
 
     V = dk.vehicle.Vehicle()
 
-    clock = Timestamp()
-    V.add(clock, outputs='timestamp')
+    def get_timestamp():
+        return time.time()
+
+    clock = Lambda(get_timestamp)
+    V.add(clock, outputs=['timestamp'])
 
     cam = PiCamera(resolution=cfg.CAMERA_RESOLUTION)
     V.add(cam, outputs=['cam/image_array'], threaded=True)
