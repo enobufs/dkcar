@@ -8,7 +8,6 @@ import numpy as np
 WIDTH = 160         # With of input image
 HEIGHT = 120        # Height of input image
 
-CAM = cv.VideoCapture("dkcar.mp4")
 UBASE_WIDTH = 60    # Upper-base width
 LBASE_WIDTH = 320   # Lower-base width
 UOFFSET = 45        # Upper-base margin
