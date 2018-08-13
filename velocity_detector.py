@@ -39,6 +39,8 @@ def make_velocity_detector():
     def detect(image):
         """Detect speed from images"""
         nonlocal prev, v_last
+        curr_bgr = cv.warpPerspective(image, M, (160, 120))
+        curr = cv.cvtColor(curr_bgr, cv.COLOR_BGR2GRAY)
 
         if prev is None:
             prev = curr
