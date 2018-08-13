@@ -37,7 +37,7 @@ def make_velocity_detector():
     v_last = 0.0
 
     def detect(image):
-        """Detect speed from images"""
+        """Detect velocity from images"""
         nonlocal prev, v_last
         curr_bgr = cv.warpPerspective(image, M, (160, 120))
         curr = cv.cvtColor(curr_bgr, cv.COLOR_BGR2GRAY)
@@ -56,21 +56,26 @@ def make_velocity_detector():
             15,     # winsize, averaging windows size.
             3,      # iterations, number of iterations the algorithm does at each pyramid level.
             5,      # standard deviation of the Gaussian that is used to smooth derivative
-            1.2,
+            1.5,
             0)
 
         mag, ang = cv.cartToPolar(flow[..., 0], flow[..., 1])
 
         v = mag * np.sin(ang)
 
-        v = v[np.where(v >= DISPLACEMENT_CUTOFF)]
-        v_max = v_last + MAX_ACC*2
-        v_min = max(v_last - MAX_ACC*2, DISPLACEMENT_CUTOFF)
+        v = v[np.where(np.absolute(v) >= DISPLACEMENT_CUTOFF)]
+        v_max = v_last + MAX_ACC
+        v_min = v_last - MAX_ACC
         v = np.clip(v, v_min, v_max)
         if v.size > 0:
             v_avg = v.mean()
         else:
-            v_avg = max(v_last - MAX_ACC, 0)
+            if v_last > 0:
+                v_avg = max(v_last - MAX_ACC, 0)
+            elif v_last < 0:
+                v_avg = min(v_last + MAX_ACC, 0)
+            else:
+                v_avg = 0
 
         prev = curr
         v_last = v_avg
