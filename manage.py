@@ -78,7 +78,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
                                 outputs=['run_pilot'])
 
     # Add velocity detector
-    vd = Lambda(make_velocity_detector)
+    vd = Lambda(make_velocity_detector())
     V.add(vd, inputs=['cam/image_array'], outputs=['user/velocity'])
 
     def print_velocity(v):
