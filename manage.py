@@ -26,7 +26,7 @@ from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import TubGroup, TubWriter
 from donkeycar.parts.controller import LocalWebController, JoystickController
 from donkeycar.parts.clock import Timestamp
-from velocity_detector import make_speed_detector
+from velocity_detector import make_velocity_detector
 
 
 def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
