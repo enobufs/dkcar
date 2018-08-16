@@ -81,10 +81,12 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
     vd = Lambda(make_velocity_detector())
     V.add(vd, inputs=['cam/image_array'], outputs=['user/velocity'])
 
+    """"
     def print_velocity(v):
         print('velocity:', v)
     pv = Lambda(print_velocity)
     V.add(pv, inputs=['user/velocity'])
+    """
 
     # Run the pilot if the mode is not user.
     kl = KerasCategorical()
@@ -100,12 +102,15 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
                    user_angle, user_throttle,
                    pilot_angle, pilot_throttle):
         if mode == 'user':
+            # manual steer, manual throttle
             return user_angle, user_throttle
 
         elif mode == 'local_angle':
+            # auto steer, manual throttle
             return pilot_angle, user_throttle
 
         else:
+            # auto steer, auto throttle
             return pilot_angle, pilot_throttle
 
     drive_mode_part = Lambda(drive_mode)
@@ -129,8 +134,8 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
     V.add(throttle, inputs=['throttle'])
 
     # add tub to save data
-    inputs = ['cam/image_array', 'user/angle', 'user/throttle', 'user/mode', 'timestamp']
-    types = ['image_array', 'float', 'float',  'str', 'str']
+    inputs = ['cam/image_array', 'user/angle', 'user/velocity', 'user/throttle', 'user/mode', 'timestamp']
+    types = ['image_array', 'float', 'float',  'str', 'float']
 
     #multiple tubs
     #th = TubHandler(path=cfg.DATA_PATH)
@@ -153,7 +158,7 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
     saves the output trained model as model_name
     """
     X_keys = ['cam/image_array']
-    y_keys = ['user/angle', 'user/throttle']
+    y_keys = ['user/angle', 'user/velocity']
     def train_record_transform(record):
         """ convert categorical steering to linear and apply image augmentations """
         record['user/angle'] = dk.util.data.linear_bin(record['user/angle'])
