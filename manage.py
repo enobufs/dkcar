@@ -94,7 +94,19 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
         kl.load(model_path)
 
     V.add(kl, inputs=['cam/image_array'],
-              outputs=['pilot/angle', 'pilot/throttle'],
+              outputs=['pilot/angle', 'pilot/velocity'],
+              run_condition='run_pilot')
+
+    def calc_throttle(inferred_v, actual_v):
+        throttle = 0.0
+
+        if inferred_v > actual_v:
+            throttle = min((inferred_v - actual_v) * 1.0, 0.5)
+        return throttle
+
+    ct = Lambda(make_velocity_detector())
+    V.add(ct, inputs=['pilot/velocity', 'user/velocity'],
+              outputs=['pilot/throttle'],
               run_condition='run_pilot')
 
     # Choose what inputs should change the car.
