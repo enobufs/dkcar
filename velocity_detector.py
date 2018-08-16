@@ -36,7 +36,7 @@ def make_velocity_detector():
     prev = None
     v_last = 0.0
 
-    def detect(image):
+    def detect_velocity(image):
         """Detect velocity from images"""
         nonlocal prev, v_last
         curr_bgr = cv.warpPerspective(image, M, (160, 120))
@@ -79,7 +79,7 @@ def make_velocity_detector():
 
         prev = curr
         v_last = v_avg
-        return v_last
+        return float(v_last)
 
-    return detect
+    return detect_velocity
 

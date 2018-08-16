@@ -102,9 +102,10 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
 
         if inferred_v > actual_v:
             throttle = min((inferred_v - actual_v) * 1.0, 0.5)
+        print('V: inferred={} actual={} => throttle={}'.format(inferred_v, actual_v, throttle));
         return throttle
 
-    ct = Lambda(make_velocity_detector())
+    ct = Lambda(calc_throttle)
     V.add(ct, inputs=['pilot/velocity', 'user/velocity'],
               outputs=['pilot/throttle'],
               run_condition='run_pilot')
@@ -123,6 +124,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
 
         else:
             # auto steer, auto throttle
+            print('PILOT: angle={} throttle={}'.format(pilot_angle, pilot_throttle))
             return pilot_angle, pilot_throttle
 
     drive_mode_part = Lambda(drive_mode)
