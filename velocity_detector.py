@@ -24,7 +24,7 @@ DST_LL = [0, HEIGHT]
 DST_UR = [WIDTH, 0]
 DST_LR = [WIDTH, HEIGHT]
 
-DISPLACEMENT_CUTOFF = 0.2
+VELOCITY_CUTOFF_PCT = 67
 
 def make_velocity_detector():
     """Velocity detector factory."""
