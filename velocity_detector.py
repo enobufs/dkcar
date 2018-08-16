@@ -27,7 +27,7 @@ DST_LR = [WIDTH, HEIGHT]
 DISPLACEMENT_CUTOFF = 0.2
 
 def make_velocity_detector():
-    """Speed detector factory."""
+    """Velocity detector factory."""
 
     pts1 = np.float32([SRC_UL, SRC_LL, SRC_UR, SRC_LR])
     pts2 = np.float32([DST_UL, DST_LL, DST_UR, DST_LR])
@@ -63,7 +63,9 @@ def make_velocity_detector():
 
         v = mag * np.sin(ang)
 
-        v = v[np.where(np.absolute(v) >= DISPLACEMENT_CUTOFF)]
+        v_abs = np.absolute(v)
+        v = v[v_abs >= np.percentile(v_abs, VELOCITY_CUTOFF_PCT)]
+
         v_max = v_last + MAX_ACC
         v_min = v_last - MAX_ACC
         v = np.clip(v, v_min, v_max)
