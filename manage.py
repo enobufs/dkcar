@@ -21,6 +21,7 @@ import time
 #import parts
 from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda
+from donkeycar.parts.transform import PIDController
 from donkeycar.parts.keras import KerasCategorical
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import TubGroup, TubWriter
@@ -43,9 +44,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
     V = dk.vehicle.Vehicle()
 
     def get_timestamp():
-        t = time.time()
-        #print('clock:', t)
-        return t
+        return time.time()
 
     clock = Lambda(get_timestamp)
     V.add(clock, outputs=['timestamp'])
@@ -66,6 +65,10 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
           inputs=['cam/image_array'],
           outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
           threaded=True)
+
+    angleSmoother = PIDController()
+    V.add(angleSmoother, inputs=['user/angle'], outputs=['user/angle'])
+
 
     # See if we should even run the pilot module.
     # This is only needed because the part run_condition only accepts boolean
@@ -99,20 +102,11 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
               outputs=['pilot/angle', 'pilot/velocity'],
               run_condition='run_pilot')
 
-    acc = 0.35
-
     def calc_throttle(inferred_v, actual_v):
-        margin = 0.2
-        inferred_v = inferred_v * 0.8
+        throttle = 0.0
 
-        if inferred_v + margin > actual_v:
-            nonlocal acc
-            acc = acc + 0.01
-        elif inferred_v - margin < actual_v:
-            acc = 0.35
-
-        throttle = min(acc, 0.5)
-
+        if inferred_v > actual_v:
+            throttle = min((inferred_v - actual_v) * 1.0, 0.5)
         print('V: inferred={} actual={} => throttle={}'.format(inferred_v, actual_v, throttle));
         return throttle
 
@@ -135,7 +129,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
 
         else:
             # auto steer, auto throttle
-            #print('PILOT: angle={} throttle={}'.format(pilot_angle, pilot_throttle))
+            print('PILOT: angle={} throttle={}'.format(pilot_angle, pilot_throttle))
             return pilot_angle, pilot_throttle
 
     drive_mode_part = Lambda(drive_mode)
@@ -223,7 +217,8 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
              val_gen,
              saved_model_path=new_model_path,
              steps=steps_per_epoch,
-             train_split=cfg.TRAIN_TEST_SPLIT)
+             train_split=cfg.TRAIN_TEST_SPLIT,
+             use_early_stop=False)
 
 
 if __name__ == '__main__':
