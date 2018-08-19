@@ -68,6 +68,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
 
     curr_angle = 0.0
     def smooth_angle(in_angle):
+        nonlocal curr_angle
         delta = curr_angle - in_angle
         curr_angle = delta * 0.1
         return curr_angle
