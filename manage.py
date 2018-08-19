@@ -123,13 +123,13 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
         """
         if (inferred_v > 5):
             throttle = 0.5
-        if (inferred_v > 4):
+        elif (inferred_v > 4):
             throttle = 0.48
-        if (inferred_v > 3):
+        elif (inferred_v > 3):
             throttle = 0.46
-        if (inferred_v > 2):
+        elif (inferred_v > 2):
             throttle = 0.44
-        if (inferred_v > 1):
+        elif (inferred_v > 1):
             throttle = 0.42
         return throttle
 
