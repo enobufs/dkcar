@@ -122,15 +122,15 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
         print('V: inferred={} actual={} => throttle={}'.format(inferred_v, actual_v, throttle));
         """
         if (inferred_v > 5):
-            throttle = 0.5
-        elif (inferred_v > 4):
             throttle = 0.48
-        elif (inferred_v > 3):
+        elif (inferred_v > 4):
             throttle = 0.46
-        elif (inferred_v > 2):
+        elif (inferred_v > 3):
             throttle = 0.44
-        elif (inferred_v > 1):
+        elif (inferred_v > 2):
             throttle = 0.42
+        elif (inferred_v > 1):
+            throttle = 0.40
         return throttle
 
     ct = Lambda(calc_throttle)
