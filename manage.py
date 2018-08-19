@@ -21,7 +21,7 @@ import time
 #import parts
 from donkeycar.parts.camera import PiCamera
 from donkeycar.parts.transform import Lambda
-from donkeycar.parts.transform import PIDController
+#from donkeycar.parts.transform import PIDController
 from donkeycar.parts.keras import KerasCategorical
 from donkeycar.parts.actuator import PCA9685, PWMSteering, PWMThrottle
 from donkeycar.parts.datastore import TubGroup, TubWriter
@@ -66,7 +66,11 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
           outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
           threaded=True)
 
-    angleSmoother = PIDController()
+    def smooth_angle(in_angle):
+        print('angle:', in_angle)
+        return in_angle
+
+    angleSmoother = Lambda(smooth_angle)
     V.add(angleSmoother, inputs=['user/angle'], outputs=['user/angle'])
 
 
