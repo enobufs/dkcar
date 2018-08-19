@@ -66,9 +66,11 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
           outputs=['user/angle', 'user/throttle', 'user/mode', 'recording'],
           threaded=True)
 
+    curr_angle = 0.0
     def smooth_angle(in_angle):
-        print('angle:', in_angle)
-        return in_angle
+        delta = curr_angle - in_angle
+        curr_angle = delta * 0.1
+        return curr_angle
 
     angleSmoother = Lambda(smooth_angle)
     V.add(angleSmoother, inputs=['user/angle'], outputs=['user/angle'])
