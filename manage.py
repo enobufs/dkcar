@@ -43,7 +43,9 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
     V = dk.vehicle.Vehicle()
 
     def get_timestamp():
-        return time.time()
+        t = time.time()
+        #print('clock:', t)
+        return t
 
     clock = Lambda(get_timestamp)
     V.add(clock, outputs=['timestamp'])
@@ -97,11 +99,20 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
               outputs=['pilot/angle', 'pilot/velocity'],
               run_condition='run_pilot')
 
-    def calc_throttle(inferred_v, actual_v):
-        throttle = 0.0
+    acc = 0.35
 
-        if inferred_v > actual_v:
-            throttle = min((inferred_v - actual_v) * 1.0, 0.5)
+    def calc_throttle(inferred_v, actual_v):
+        margin = 0.2
+        inferred_v = inferred_v * 0.8
+
+        if inferred_v + margin > actual_v:
+            nonlocal acc
+            acc = acc + 0.01
+        elif inferred_v - margin < actual_v:
+            acc = 0.35
+
+        throttle = min(acc, 0.5)
+
         print('V: inferred={} actual={} => throttle={}'.format(inferred_v, actual_v, throttle));
         return throttle
 
@@ -124,7 +135,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
 
         else:
             # auto steer, auto throttle
-            print('PILOT: angle={} throttle={}'.format(pilot_angle, pilot_throttle))
+            #print('PILOT: angle={} throttle={}'.format(pilot_angle, pilot_throttle))
             return pilot_angle, pilot_throttle
 
     drive_mode_part = Lambda(drive_mode)
