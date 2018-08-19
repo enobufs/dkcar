@@ -73,7 +73,7 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
         if abs(delta) < 0.02:
             curr_angle = in_angle
         else:
-            curr_angle = curr_angle + delta * 0.2
+            curr_angle = curr_angle + delta * 0.15
 
         print('smoothed angle:', curr_angle)
         return curr_angle
@@ -115,11 +115,22 @@ def drive(cfg, model_path=None, use_joystick=False, use_chaos=False):
               run_condition='run_pilot')
 
     def calc_throttle(inferred_v, actual_v):
-        throttle = 0.0
-
+        throttle = 0.38
+        """
         if inferred_v > actual_v:
             throttle = min((inferred_v - actual_v) * 1.0, 0.5)
         print('V: inferred={} actual={} => throttle={}'.format(inferred_v, actual_v, throttle));
+        """
+        if (inferred_v > 5):
+            throttle = 0.5
+        if (inferred_v > 4):
+            throttle = 0.48
+        if (inferred_v > 3):
+            throttle = 0.46
+        if (inferred_v > 2):
+            throttle = 0.44
+        if (inferred_v > 1):
+            throttle = 0.42
         return throttle
 
     ct = Lambda(calc_throttle)
@@ -230,7 +241,7 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
              saved_model_path=new_model_path,
              steps=steps_per_epoch,
              train_split=cfg.TRAIN_TEST_SPLIT,
-             use_early_stop=False)
+             use_early_stop=True)
 
 
 if __name__ == '__main__':
