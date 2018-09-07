@@ -35,9 +35,10 @@ class ChainerPilot(Chain):
         pass
 
     def train(self, train_gen, val_gen,
-              saved_model_path, epochs=100, steps=100, train_split=0.8,
-              verbose=1, min_delta=.0005, patience=5, use_early_stop=True,
+              saved_model_path, steps=100, train_split=0.8,
+              #verbose=1, min_delta=.0005, patience=5, use_early_stop=True,
               gpu_id=-1):
+        epochs = 100
         batchsize = 1
 
         train_iter = iterators.SerialIterator(train_gen, batchsize)
@@ -70,5 +71,6 @@ class ChainerLinear(ChainerPilot):
     def run(self, img_arr:np.array):
         img_arr=img_arr.swapaxes(0, 2)#chainer uses channel on the 2nd axis
         img_arr = img_arr.reshape((1,) + img_arr.shape)
-        outputs = self.model.predict(img_arr)
+        with chainer.using_config("train", False):
+            outputs = self.model(img_arr).data
         return outputs[0][STEERING_AXIS], outputs[0][THROTTLE]
