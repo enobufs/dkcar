@@ -44,9 +44,10 @@ class Linear(Chain):
         def lf(X, Y):
             #print("X:", X)
             #print("Y:", Y)
-            #raise Exception("fake error")
             A = self(X)
+            #print("A:", A)
             error = Y - A
+            #print("error:", error)
             loss = F.sum(error**2)
             #print("loss:", loss)
             chainer.report({'loss': loss}, observer=self)

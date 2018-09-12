@@ -40,7 +40,6 @@ def load_data(path):
     scale = 1
     images = np.array(images, dtype=np.float32)
     images *= scale / 255.
-    print(type(images))
 
     return tuple_dataset.TupleDataset(images, labels)
 
@@ -51,13 +50,7 @@ def split_data(dataset, ratio=0.7):
 
 def main():
     dataset = load_data("./data/tub_20180824_1")
-    print('type of dataset:', type(dataset))
     train, test = split_data(dataset, ratio=0.7)
-    print(len(dataset))
-    print(len(train))
-    print('type of train:', type(train))
-    print(len(test))
-    print('type of test:', type(test))
 
 
 if __name__ == '__main__':
