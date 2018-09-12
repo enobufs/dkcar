@@ -6,3 +6,4 @@ models
 *.mp4
 __pycache__
 logs
+result

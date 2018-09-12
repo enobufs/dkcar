@@ -1,6 +1,12 @@
 import numpy as np
 import chainer
-from chainer import Sequential,links as L, functions as F, serializers, Chain, training,optimizers,iterators
+from chainer import links as L
+from chainer import functions as F
+from chainer import serializers
+from chainer import Chain
+from chainer import training
+from chainer import optimizers
+from chainer import iterators
 
 STEERING_AXIS = 0
 THROTTLE = 1
@@ -11,6 +17,46 @@ training very different
 
 """""
 
+class Linear(Chain):
+    def __init__(self):
+        super(Linear, self).__init__()
+        with self.init_scope():
+            self.conv1 = L.Convolution2D(in_channels=3, out_channels=24, ksize=5, stride=2)  # shape=(24, 59, 79)
+            self.conv2 = L.Convolution2D(in_channels=24, out_channels=32, ksize=5, stride=2) # shape=(32, 28, 38)
+            self.conv3 = L.Convolution2D(in_channels=32, out_channels=64, ksize=5, stride=2) # shape=(64, 13, 18)
+            self.conv4 = L.Convolution2D(in_channels=64, out_channels=64, ksize=3, stride=2) # shape=(64, 6, 9)
+            self.conv5 = L.Convolution2D(in_channels=64, out_channels=64, ksize=3, stride=1) # shape=(64, 4, 7)
+            self.l1 = L.Linear(None,100)    # shape=(100)
+            self.l2 = L.Linear(None, 50)    # shape=(100)
+            self.l3 = L.Linear(2)
+
+    def __call__(self, x):
+        h = F.relu(self.conv1(x))
+        h = F.relu(self.conv2(h))
+        h = F.relu(self.conv3(h))
+        h = F.relu(self.conv4(h))
+        h = F.relu(self.conv5(h))
+        h = F.dropout(self.l1(h), 0.1)
+        h = F.dropout(self.l2(h), 0.1)
+        return self.l3(h)
+
+    def get_loss_func(self):
+        def lf(X, Y):
+            #print("X:", X)
+            #print("Y:", Y)
+            #raise Exception("fake error")
+            A = self(X)
+            error = Y - A
+            loss = F.sum(error**2)
+            #print("loss:", loss)
+            chainer.report({'loss': loss}, observer=self)
+            return loss
+
+        return lf
+        
+
+
+"""
 def default_linear():
     #out_size = (in_size-kernel+2*pad)/stride + 1 rounded up
     Sequential(#shape=(3, 120, 160)
@@ -35,7 +81,7 @@ class ChainerPilot(Chain):
         pass
 
     def train(self, train_gen, val_gen,
-              saved_model_path, steps=100, train_split=0.8,
+              saved_model_path, steps=100, train_split=0.7,
               #verbose=1, min_delta=.0005, patience=5, use_early_stop=True,
               gpu_id=-1):
         epochs = 100
@@ -74,3 +120,5 @@ class ChainerLinear(ChainerPilot):
         with chainer.using_config("train", False):
             outputs = self.model(img_arr).data
         return outputs[0][STEERING_AXIS], outputs[0][THROTTLE]
+"""
+
