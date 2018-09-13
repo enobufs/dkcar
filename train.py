@@ -3,8 +3,9 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    train.py (infer) [--tub=<tub1,tub2,..tubn>] [--model=<model>]
-    train.py (train) [--tub=<tub1,tub2,..tubn>] [--model=<model>]  [--base_model=<base_model>] [--no_cache]
+    train.py (infer) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--use_ideep]
+    train.py (train) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--base_model=<base_model>]
+    [--use_ideep]
 
 Options:
     -h --help        Show this screen.
@@ -16,10 +17,8 @@ Options:
 import os
 from docopt import docopt
 
-import donkeycar as dk
 import time
 
-from donkeycar.parts.datastore import TubGroup #, TubWriter
 from donkeychainer import dataset as ds
 from donkeychainer import model
 
@@ -30,13 +29,19 @@ from chainer import functions as F
 from chainer.training import extensions
 
 
-def infer(cfg, tub_names, model_path):
+def infer(cfg, tub_names, model_path, use_ideep=False):
     batchsize = 1
     gpu = -1
 
     m = model.Linear()
     print('loading model from {}'.format(model_path))
     chainer.serializers.load_npz(model_path, m)
+
+    if use_ideep:
+        # Enable iDeep's function computations
+        chainer.config.use_ideep = "always"
+        # Enable iDeep's opitimizer computations
+        m.to_intel64()
 
     dataset = ds.load_data(tub_names)
 
@@ -57,11 +62,11 @@ def infer(cfg, tub_names, model_path):
             print('elapsed :', elapsed)
 
 
-def train(cfg, tub_names, new_model_path, base_model_path=None ):
+def train(cfg, tub_names, new_model_path, use_ideep=False):
     epochs = 40
     batchsize = 32
     gpu = -1
-    plot = True
+    plot = False
     resume = False
 
     dataset = ds.load_data(tub_names)
@@ -69,6 +74,12 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
     train, test = ds.split_data(dataset, ratio=0.7)
 
     m = model.Linear()
+
+    if use_ideep:
+        # Enable iDeep's function computations
+        chainer.config.use_ideep = "always"
+        # Enable iDeep's opitimizer computations
+        m.to_intel64()
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
@@ -82,8 +93,7 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
     updater = training.updaters.StandardUpdater(
             train_iter, optimizer, device=gpu, loss_func=m.get_loss_func())
 
-    #trainer = training.Trainer(updater, (epochs, 'epoch'), out='results')
-    trainer = training.Trainer(updater, (1, 'iteration'), out='results')
+    trainer = training.Trainer(updater, (epochs, 'epoch'), out='results')
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(test_iter, m, device=gpu, eval_func=m.get_loss_func()))
@@ -133,17 +143,17 @@ def train(cfg, tub_names, new_model_path, base_model_path=None ):
 
 if __name__ == '__main__':
     args = docopt(__doc__)
-    cfg = dk.load_config()
+    cfg = {}
 
     if args['infer']:
         tub = args['--tub']
         model_path = args['--model']
-        infer(cfg, tub, model_path)
+        use_ideep = args['--use_ideep']
+        infer(cfg, tub, model_path, use_ideep)
 
     elif args['train']:
         tub = args['--tub']
         new_model_path = args['--model']
-        base_model_path = args['--base_model']
-        cache = not args['--no_cache']
-        train(cfg, tub, new_model_path, base_model_path)
+        use_ideep = args['--use_ideep']
+        train(cfg, tub, new_model_path, use_ideep)
 

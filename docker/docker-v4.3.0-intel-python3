@@ -1,0 +1,25 @@
+FROM chainer/chainer:v4.3.0-intel-python3
+MAINTAINER Yutaka Takeda <yt0916@gmail.com>
+
+ENV DEFAULT_USER=donkey
+RUN useradd --create-home --shell /bin/bash -p `openssl passwd -1 ${DEFAULT_USER}` ${DEFAULT_USER}
+RUN usermod -aG sudo ${DEFAULT_USER}
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    apt-utils \
+    wget curl sudo \
+    build-essential \
+    vim git zip unzip tree
+    python3-tk
+
+RUN pip3 install \
+    virtualenv \
+    docopt \
+    pillow \
+    matplotlib
+
+USER ${DEFAULT_USER}
+WORKDIR /home/${DEFAULT_USER}
+
+RUN printf "\n# Python aliases\nalias pip=pip3\nalias python=python3\n" >> ~/.bashrc
