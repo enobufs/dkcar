@@ -11,7 +11,6 @@ RUN apt-get update && \
     wget curl sudo \
     build-essential \
     vim git zip unzip tree
-    python3-tk
 
 RUN pip3 install \
     virtualenv \
