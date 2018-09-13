@@ -23,6 +23,7 @@ from donkeychainer import dataset as ds
 from donkeychainer import model
 
 import numpy as np
+import matplotlib.pyplot as plt
 import chainer
 from chainer import training
 from chainer import functions as F
@@ -45,9 +46,12 @@ def infer(cfg, tub_names, model_path, use_ideep=False):
 
     dataset = ds.load_data(tub_names)
 
+    angle = []
+    throttle = []
+
     for idx, data in enumerate(dataset):
-        if idx >= 10:
-            break
+        #if idx >= 10:
+        #    break
 
         # Infer the first image
         x = data[0];
@@ -60,7 +64,30 @@ def infer(cfg, tub_names, model_path, use_ideep=False):
             print('inferred:', res)
             print('expected:', data[1])
             print('elapsed :', elapsed)
+            angle.append((data[1][0], res.data[0,0]))
+            throttle.append((data[1][1], res.data[0,1]))
 
+    for d in angle:
+        x = d[0]
+        y = d[1]
+        area = np.pi * (2**2)
+        color = 'b'
+        plt.scatter(x, y, s=area, c=color, alpha=0.5)
+
+    for d in throttle:
+        x = d[0] # expected
+        y = d[1] # inferred
+        area = np.pi * (2**2)
+        color = 'r'
+        plt.scatter(x, y, s=area, c=color, alpha=0.5)
+
+    """
+    fig = plt.figure()
+    fig.suptitle('Linear Model Performance (Blue: angle, Red: throttle)', fontsize=14)
+    plt.xlabel('Expected', fontsize=18)
+    plt.ylabel('Inferred', fontsize=16)
+    """
+    plt.show()
 
 def train(cfg, tub_names, new_model_path, use_ideep=False):
     epochs = 40
