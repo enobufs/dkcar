@@ -8,6 +8,7 @@ from chainer.datasets import tuple_dataset
 from chainer.datasets import split_dataset
 
 
+# Load image file and return image data in CHW format with [0:1) float32.
 def load_image( infilename ):
     img = Image.open(infilename)
     img.load()
@@ -16,8 +17,12 @@ def load_image( infilename ):
     scale = 1
     narr = np.asarray(img, dtype=np.float32)
     narr *= scale / 255.
+    narr = narr.transpose(2, 0, 1) # HWC to CHW
 
     return narr
+
+def mask_image(image, mask):
+    return image * mask
 
 def sort_files(in_files):
     # make a list of (seq, file_name)
@@ -40,7 +45,7 @@ def sort_files(in_files):
 
     return list(map(lambda x: x[1], tmp_list))
 
-def load_data(path):
+def load_data(path, mask):
     #files = [f for f in listdir(path) if isfile(join(path, f))]
     files = glob.glob(os.path.join(path, "*.json"))
 
@@ -58,7 +63,12 @@ def load_data(path):
 
             image_path = os.path.join(path, data['cam/image_array'])
             img = load_image(image_path)
-            img = img.transpose(2, 0, 1)
+            if mask is not None:
+                try:
+                    img = mask_image(img, mask)
+                except:
+                    print("Error when processing image file at", image_path)
+                    raise
             images.append((img, prev_image, prev_label))
             prev_image = img;
             prev_label = (data['user/angle'], data['user/throttle'])

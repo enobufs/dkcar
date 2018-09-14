@@ -3,9 +3,9 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    train.py (infer) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--use_ideep]
-    train.py (train) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--base_model=<base_model>]
-    [--use_ideep]
+    train.py (view) [--tub=<tub1,tub2,..tubn>] [--mask=<img-mask-path>]
+    train.py (infer) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--use_ideep] [--mask=<img-mask-path>]
+    train.py (train) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--base_model=<base_model>] [--use_ideep] [--mask=<img-mask-path>]
 
 Options:
     -h --help        Show this screen.
@@ -27,14 +27,36 @@ import matplotlib
 if os.environ.get('DISPLAY') == None:
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import cv2
 import chainer
 from chainer import training
 from chainer import functions as F
 from chainer.training import extensions
 
 
-def infer(cfg, tub_names, model_path, use_ideep=False):
+def view(cfg, tub_names, image_mask_path=None):
+    mask = None
+
+    if image_mask_path:
+        print('Using image mask at:', image_mask_path)
+        mask = ds.load_image(image_mask_path)
+
+    dataset = ds.load_data(tub_names, mask)
+
+    for data in dataset:
+        x = data[0][0]; # (3, 120, 160)
+        #x = x[:,40:]
+
+        x = x.transpose(1, 2, 0)
+        x = x[...,::-1]
+        cv2.imshow('Lane Detection', x)
+        cv2.waitKey(50)
+
+    cv2.destroyAllWindows()
+
+def infer(cfg, tub_names, model_path, use_ideep=False, image_mask_path=None):
     gpu = -1
+    mask = None
 
     m = model.Linear()
     print('loading model from {}'.format(model_path))
@@ -48,7 +70,11 @@ def infer(cfg, tub_names, model_path, use_ideep=False):
     elif gpu >= 0:
         m.to_gpu()
 
-    dataset = ds.load_data(tub_names)
+    if image_mask_path:
+        print('Using image mask at:', image_mask_path)
+        mask = ds.load_image(image_mask_path)
+
+    dataset = ds.load_data(tub_names, mask)
 
     angle = []
     throttle = []
@@ -93,14 +119,19 @@ def infer(cfg, tub_names, model_path, use_ideep=False):
     """
     plt.show()
 
-def train(cfg, tub_names, new_model_path, use_ideep=False):
+def train(cfg, tub_names, new_model_path, use_ideep=False, image_mask_path=None):
     epochs = 40
     batchsize = 32
     gpu = -1
     plot = True
     resume = False
+    mask = None
 
-    dataset = ds.load_data(tub_names)
+    if image_mask_path:
+        print('Using image mask at:', image_mask_path)
+        mask = ds.load_image(image_mask_path)
+
+    dataset = ds.load_data(tub_names, mask)
 
     train, test = ds.split_data(dataset, ratio=0.7)
 
@@ -176,15 +207,18 @@ if __name__ == '__main__':
     args = docopt(__doc__)
     cfg = {}
 
-    if args['infer']:
-        tub = args['--tub']
+    tub = args['--tub']
+    use_ideep = args['--use_ideep']
+    img_mask_path = args['--mask']
+
+    if args['view']:
+        view(cfg, tub, img_mask_path)
+
+    elif args['infer']:
         model_path = args['--model']
-        use_ideep = args['--use_ideep']
-        infer(cfg, tub, model_path, use_ideep)
+        infer(cfg, tub, model_path, use_ideep, img_mask_path)
 
     elif args['train']:
-        tub = args['--tub']
         new_model_path = args['--model']
-        use_ideep = args['--use_ideep']
-        train(cfg, tub, new_model_path, use_ideep)
+        train(cfg, tub, new_model_path, use_ideep, img_mask_path)
 
