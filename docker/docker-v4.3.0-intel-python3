@@ -10,6 +10,7 @@ RUN apt-get update && \
     apt-utils \
     wget curl sudo \
     build-essential \
+    python-opencv \
     python3-tk \
     vim git zip unzip tree
 
@@ -17,7 +18,8 @@ RUN pip3 install \
     virtualenv \
     docopt \
     pillow \
-    matplotlib
+    matplotlib \
+    opencv-python
 
 USER ${DEFAULT_USER}
 WORKDIR /home/${DEFAULT_USER}
