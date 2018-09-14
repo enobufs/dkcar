@@ -3,6 +3,7 @@ import chainer
 from chainer import links as L
 from chainer import functions as F
 from chainer import serializers
+from chainer import initializers
 from chainer import Chain
 from chainer import training
 from chainer import optimizers
@@ -20,15 +21,24 @@ training very different
 class Linear(Chain):
     def __init__(self):
         super(Linear, self).__init__()
+        self.dtype = np.float32
+        W = initializers.HeNormal(1 / np.sqrt(2), self.dtype)
+        bias = initializers.Zero(self.dtype)
+        
         with self.init_scope():
-            self.conv1 = L.Convolution2D(in_channels=3, out_channels=24, ksize=5, stride=2)  # shape=(24, 59, 79)
-            self.conv2 = L.Convolution2D(in_channels=24, out_channels=32, ksize=5, stride=2) # shape=(32, 28, 38)
-            self.conv3 = L.Convolution2D(in_channels=32, out_channels=64, ksize=5, stride=2) # shape=(64, 13, 18)
-            self.conv4 = L.Convolution2D(in_channels=64, out_channels=64, ksize=3, stride=2) # shape=(64, 6, 9)
-            self.conv5 = L.Convolution2D(in_channels=64, out_channels=64, ksize=3, stride=1) # shape=(64, 4, 7)
-            self.l1 = L.Linear(None,100)    # shape=(100)
-            self.l2 = L.Linear(None, 50)    # shape=(100)
-            self.l3 = L.Linear(2)
+            self.conv1 = L.Convolution2D(in_channels=3,  out_channels=24, ksize=5, stride=2,
+                    initialW=W, initial_bias=bias) # shape=(24, 59, 79)
+            self.conv2 = L.Convolution2D(in_channels=24, out_channels=32, ksize=5, stride=2,
+                    initialW=W, initial_bias=bias) # shape=(32, 28, 38)
+            self.conv3 = L.Convolution2D(in_channels=32, out_channels=64, ksize=5, stride=2,
+                    initialW=W, initial_bias=bias) # shape=(64, 13, 18)
+            self.conv4 = L.Convolution2D(in_channels=64, out_channels=64, ksize=3, stride=2,
+                    initialW=W, initial_bias=bias) # shape=(64, 6, 9)
+            self.conv5 = L.Convolution2D(in_channels=64, out_channels=64, ksize=3, stride=1,
+                    initialW=W, initial_bias=bias) # shape=(64, 4, 7)
+            self.l1 = L.Linear(None,100, initialW=W, initial_bias=bias)    # shape=(100)
+            self.l2 = L.Linear(None, 50, initialW=W, initial_bias=bias)    # shape=(100)
+            self.l3 = L.Linear(2, initialW=W, initial_bias=bias)
 
     def __call__(self, x):
         h = F.relu(self.conv1(x))

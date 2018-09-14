@@ -204,6 +204,7 @@ def train(cfg, tub_names, new_model_path, use_ideep=False, image_mask_path=None)
 
 
 if __name__ == '__main__':
+    np.random.seed(1)
     args = docopt(__doc__)
     cfg = {}
 
