@@ -10,6 +10,7 @@ RUN apt-get update && \
     apt-utils \
     wget curl sudo \
     build-essential \
+    python3-tk \
     vim git zip unzip tree
 
 RUN pip3 install \
