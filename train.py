@@ -34,7 +34,6 @@ from chainer.training import extensions
 
 
 def infer(cfg, tub_names, model_path, use_ideep=False):
-    batchsize = 1
     gpu = -1
 
     m = model.Linear()
@@ -46,6 +45,8 @@ def infer(cfg, tub_names, model_path, use_ideep=False):
         chainer.config.use_ideep = "always"
         # Enable iDeep's opitimizer computations
         m.to_intel64()
+    elif gpu >= 0:
+        m.to_gpu()
 
     dataset = ds.load_data(tub_names)
 
@@ -57,7 +58,7 @@ def infer(cfg, tub_names, model_path, use_ideep=False):
         #    break
 
         # Infer the first image
-        x = data[0];
+        x = data[0][0];
         x = chainer.Variable(x.reshape(1, 3, 120, 160))
         with chainer.using_config('train', False):
             startAt = time.time()
@@ -96,7 +97,7 @@ def train(cfg, tub_names, new_model_path, use_ideep=False):
     epochs = 40
     batchsize = 32
     gpu = -1
-    plot = False
+    plot = True
     resume = False
 
     dataset = ds.load_data(tub_names)
@@ -133,7 +134,7 @@ def train(cfg, tub_names, new_model_path, use_ideep=False):
     trainer.extend(extensions.dump_graph('main/loss'))
 
     # Take a snapshot for each specified epoch
-    trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
+    #trainer.extend(extensions.snapshot(), trigger=(1, 'epoch'))
 
     # Write a log of evaluation statistics for each epoch
     trainer.extend(extensions.LogReport())
