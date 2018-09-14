@@ -5,7 +5,8 @@ import json
 from PIL import Image
 import numpy as np
 from chainer.datasets import tuple_dataset
-from chainer.datasets import split_dataset
+#from chainer.datasets import split_dataset
+from chainer.datasets import split_dataset_random
 
 
 # Load image file and return image data in CHW format with [0:1) float32.
@@ -45,7 +46,7 @@ def sort_files(in_files):
 
     return list(map(lambda x: x[1], tmp_list))
 
-def load_data(path, mask):
+def load_data(path, mask=None):
     #files = [f for f in listdir(path) if isfile(join(path, f))]
     files = glob.glob(os.path.join(path, "*.json"))
 
@@ -78,7 +79,7 @@ def load_data(path, mask):
 
 def split_data(dataset, ratio=0.7):
     split_at = int(len(dataset) * ratio)
-    return split_dataset(dataset, split_at)
+    return split_dataset_random(dataset, split_at, 123)
 
 
 def main():
