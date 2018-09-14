@@ -42,8 +42,9 @@ class Linear(Chain):
 
     def get_loss_func(self):
         def lf(X, Y):
-            #print("X:", X)
-            #print("Y:", Y)
+            #print("X_in:", X)
+            X = np.array(list(map(lambda x: x[0], X)))
+            #print("X_out:", X)
             A = self(X)
             #print("A:", A)
             error = Y - A
