@@ -23,6 +23,9 @@ from donkeychainer import dataset as ds
 from donkeychainer import model
 
 import numpy as np
+import matplotlib
+if os.environ.get('DISPLAY') == None:
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import chainer
 from chainer import training
