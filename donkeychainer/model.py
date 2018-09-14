@@ -42,15 +42,17 @@ class Linear(Chain):
 
     def get_loss_func(self):
         def lf(X, Y):
-            #print("X_in:", X)
+            # Now, X[n] is a tuple of (where n being a batch index):
+            # X[n][0] image: current image
+            # X[n][1] prev_image: previous image
+            # X[n][2] prev_label: (previous angle, previous throttle)
+
+            # Currently, we only use X[n][0].
+            # Conver to a batch of current images, of type ndarray
             X = np.array(list(map(lambda x: x[0], X)))
-            #print("X_out:", X)
             A = self(X)
-            #print("A:", A)
             error = Y - A
-            #print("error:", error)
             loss = F.sum(error**2)
-            #print("loss:", loss)
             chainer.report({'loss': loss}, observer=self)
             return loss
 
