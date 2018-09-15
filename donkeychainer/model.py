@@ -19,6 +19,10 @@ training very different
 """""
 
 class Linear(Chain):
+    """
+    assume input image size is (3, 120, 160), or CHW
+    """
+
     def __init__(self):
         super(Linear, self).__init__()
         self.dtype = np.float32
@@ -69,70 +73,57 @@ class Linear(Chain):
         return lf
         
 
+class Simple(Chain):
+    """
+    assume input image size is (3, 120, 160), or CHW
+    """
 
-"""
-def default_linear():
-    #out_size = (in_size-kernel+2*pad)/stride + 1 rounded up
-    Sequential(#shape=(3, 120, 160)
-        L.Convolution2D(in_channels=3, out_channels=24, ksize=5, stride=2), F.relu,#shape=(24, 59, 79)
-        L.Convolution2D(in_channels=24, out_channels=32, ksize=5, stride=2), F.relu,  # shape=(32, 28, 38)
-        L.Convolution2D(in_channels=32, out_channels=64, ksize=5, stride=2), F.relu,  # shape=(64, 13, 18)
-        L.Convolution2D(in_channels=64, out_channels=64, ksize=3, stride=2), F.relu,  # shape=(64, 6, 9)
-        L.Convolution2D(in_channels=64, out_channels=64, ksize=3, stride=1), F.relu,  # shape=(64, 4, 7)
-        L.Linear(None,100),# shape=(100)
-        lambda x: F.dropout(x,0.1),
-        L.Linear(None, 50),  # shape=(100)
-        lambda x: F.dropout(x, 0.1),
-        L.Linear(2)
-    )
-
-class ChainerPilot(Chain):
-
-    def load(self, model_path):
-        self.model = serializers.load_npz(model_path)
-
-    def shutdown(self):
-        pass
-
-    def train(self, train_gen, val_gen,
-              saved_model_path, steps=100, train_split=0.7,
-              #verbose=1, min_delta=.0005, patience=5, use_early_stop=True,
-              gpu_id=-1):
-        epochs = 100
-        batchsize = 1
-
-        train_iter = iterators.SerialIterator(train_gen, batchsize)
-        test_iter = iterators.SerialIterator(val_gen, batchsize, False, False)
-
-        # selection of your optimizing method
-        optimizer = optimizers.Adam()
-
-        # Give the optimizer a reference to the model
-        optimizer.setup(self.model)
-
-        # Get an updater that uses the Iterator and Optimizer
-        updater = training.updaters.StandardUpdater(train_iter, optimizer, device=gpu_id)
-
-        # Setup a Trainer
-        trainer = training.Trainer(updater, (epochs, 'epoch'), out='mnist_result')
-        trainer.extend(extensions.snapshot_object(model.predictor, filename='model_epoch-{.updater.epoch}'))
-
-        return hist
-
-class ChainerLinear(ChainerPilot):
-    def __init__(self,model=None):
-        super(ChainerLinear,self).__init__()
+    def __init__(self,c1=24,c2=36,drop_out_ratio = 0.25):
+        self.drop_out_ratio = drop_out_ratio
+        self.dtype = np.float32
+        W = initializers.HeNormal(1 / np.sqrt(2), self.dtype)
+        bias = initializers.Zero(self.dtype)
+        super(Simple, self).__init__()
         with self.init_scope():
-            if model:
-                self.model = model
-            else:
-                self.model = default_linear()
+            self.conv1 = L.Convolution2D(in_channels=None, out_channels=c1, ksize=4, stride=2,
+                    initialW=W, initial_bias=bias)  # shape=(c1, 59, 79)
+            self.conv2 = L.Convolution2D(in_channels=None, out_channels=c2, ksize=3, stride=2,
+                    initialW=W, initial_bias=bias) # shape=(c2, 14, 19)
+            self.l1 = L.Linear(None,3, initialW=W, initial_bias=bias)    # shape=(3)
 
-    def run(self, img_arr:np.array):
-        img_arr=img_arr.swapaxes(0, 2)#chainer uses channel on the 2nd axis
-        img_arr = img_arr.reshape((1,) + img_arr.shape)
-        with chainer.using_config("train", False):
-            outputs = self.model(img_arr).data
-        return outputs[0][STEERING_AXIS], outputs[0][THROTTLE]
-"""
+    def __call__(self, x):
+        h = x
+        h = F.relu(self.conv1(h))
+        h = F.max_pooling_2d(h,ksize=3,stride=2)
+        h = F.relu(self.conv2(h))
+        if self.drop_out_ratio>0:
+            h = F.dropout(h, self.drop_out_ratio)
+
+        #h = F.max_pooling_2d(h,ksize=(2,3),stride=2)
+        h = F.max_pooling_2d(h, ksize=3, stride=2)
+        h = self.l1(h)
+
+        throttle = 0.5 * F.sigmoid(h[:,0:1])
+        angle_mag = 0.5 * F.sigmoid(h[:,1:2])
+        angle_direction = F.tanh(h[:,2:3])
+        return F.concat((throttle,angle_mag*angle_direction))
+
+
+
+    def get_loss_func(self):
+        def lf(X, Y):
+            # Now, X[n] is a tuple of (where n being a batch index):
+            # X[n][0] image: current image
+            # X[n][1] prev_image: previous image
+            # X[n][2] prev_label: (previous angle, previous throttle)
+
+            # Currently, we only use X[n][0].
+            # Conver to a batch of current images, of type ndarray
+            X = np.array(list(map(lambda x: x[0], X)))
+            A = self(X)
+            loss = F.mean_squared_error(A, Y.astype(np.float32))
+            chainer.report({'loss': loss}, observer=self)
+            return loss
+
+        return lf
 
