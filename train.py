@@ -3,9 +3,9 @@
 Scripts to drive a donkey 2 car and train a model for it.
 
 Usage:
-    train.py (view) [--tub=<tub1,tub2,..tubn>] [--mask=<img-mask-path>]
-    train.py (infer) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--use_ideep] [--mask=<img-mask-path>]
-    train.py (train) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--base_model=<base_model>] [--use_ideep] [--mask=<img-mask-path>]
+    train.py (view) [--tub=<tub1,tub2,..tubn>]
+    train.py (infer) [--tub=<tub1,tub2,..tubn>] [--model=<model>]
+    train.py (train) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--base_model=<base_model>]
 
 Options:
     -h --help        Show this screen.
@@ -33,15 +33,17 @@ import chainer
 from chainer import training
 from chainer import functions as F
 from chainer.training import extensions
+import yaml
+from collections import defaultdict
 
 Model = model.Linear
 
-def view(cfg, tub_names, image_mask_path=None):
+def view(cfg, tub_names):
     mask = None
 
-    if image_mask_path:
-        print('Using image mask at:', image_mask_path)
-        mask = ds.load_image(image_mask_path)
+    if cfg['mask'] is not None:
+        print('Using image mask at:', cfg['mask'])
+        mask = ds.load_image(cfg['mask'])
 
     dataset = ds.load_data(tub_names, mask)
 
@@ -56,25 +58,26 @@ def view(cfg, tub_names, image_mask_path=None):
 
     cv2.destroyAllWindows()
 
-def infer(cfg, tub_names, model_path, use_ideep=False, image_mask_path=None):
-    gpu = -1
+def infer(cfg, tub_names, model_path):
     mask = None
 
     m = Model()
     print('loading model from {}'.format(model_path))
     chainer.serializers.load_npz(model_path, m)
 
-    if use_ideep:
+    if cfg['use_ideep']:
+        print('Using iDeep')
         # Enable iDeep's function computations
         chainer.config.use_ideep = "always"
         # Enable iDeep's opitimizer computations
         m.to_intel64()
-    elif gpu >= 0:
+    elif cfg['gpu'] >= 0:
+        print('Using GPU {}'.format(cfg['gpu']))
         m.to_gpu()
 
-    if image_mask_path:
-        print('Using image mask at:', image_mask_path)
-        mask = ds.load_image(image_mask_path)
+    if cfg['mask'] is not None:
+        print('Using image mask at:', cfg['mask'])
+        mask = ds.load_image(cfg['mask'])
 
     dataset = ds.load_data(tub_names, mask)
 
@@ -120,19 +123,16 @@ def infer(cfg, tub_names, model_path, use_ideep=False, image_mask_path=None):
     """
     plt.show()
 
-def train(cfg, tub_names, new_model_path, use_ideep=False, image_mask_path=None):
-    epochs = 40
-    batchsize = 32
-    gpu = -1
+def train(cfg, tub_names, new_model_path):
     plot = True
     resume = False
     mask = None
 
     out_dir = tool.make_output_dir('results')
 
-    if image_mask_path:
-        print('Using image mask at:', image_mask_path)
-        mask = ds.load_image(image_mask_path)
+    if cfg['mask'] is not None:
+        print('Using image mask at:', cfg['mask'])
+        mask = ds.load_image(cfg['mask'])
 
     dataset = ds.load_data(tub_names, mask)
 
@@ -140,28 +140,32 @@ def train(cfg, tub_names, new_model_path, use_ideep=False, image_mask_path=None)
 
     m = Model()
 
-    if use_ideep:
+    if cfg['use_ideep']:
+        print('Using iDeep')
         # Enable iDeep's function computations
         chainer.config.use_ideep = "always"
         # Enable iDeep's opitimizer computations
         m.to_intel64()
+    elif cfg['gpu'] >= 0:
+        print('Using GPU {}'.format(cfg['gpu']))
+        m.to_gpu()
 
     # Setup an optimizer
     optimizer = chainer.optimizers.Adam()
     optimizer.setup(m)
 
-    train_iter = chainer.iterators.SerialIterator(train, batchsize)
-    test_iter = chainer.iterators.SerialIterator(test, batchsize,
+    train_iter = chainer.iterators.SerialIterator(train, cfg['train']['batchsize'])
+    test_iter = chainer.iterators.SerialIterator(test, cfg['train']['batchsize'],
                                                  repeat=False, shuffle=False)
 
     # Set up a trainer
     updater = training.updaters.StandardUpdater(
-            train_iter, optimizer, device=gpu, loss_func=m.get_loss_func())
+            train_iter, optimizer, device=cfg['gpu'], loss_func=m.get_loss_func())
 
-    trainer = training.Trainer(updater, (epochs, 'epoch'), out=out_dir)
+    trainer = training.Trainer(updater, (cfg['train']['epochs'], 'epoch'), out=out_dir)
 
     # Evaluate the model with the test dataset for each epoch
-    trainer.extend(extensions.Evaluator(test_iter, m, device=gpu, eval_func=m.get_loss_func()))
+    trainer.extend(extensions.Evaluator(test_iter, m, device=cfg['gpu'], eval_func=m.get_loss_func()))
 
     # Dump a computational graph from 'loss' variable at the first iteration
     # The "main" refers to the target link of the "main" optimizer.
@@ -213,22 +217,36 @@ def train(cfg, tub_names, new_model_path, use_ideep=False, image_mask_path=None)
     print("See other results under {}".format(out_dir))
 
 if __name__ == '__main__':
+    # Default config
+    cfg = {
+        "gpu": -1,
+        "mask": None ,
+        "use_ideep": False,
+        "train": { "batchsize": 32 }
+    }
+
+    # From donkychainer.yml
+    try:
+        with open('donkeychainer.yml', 'r') as istream:
+            chainer_cfg = yaml.load(istream)
+            cfg.update(chainer_cfg)
+    except:
+        print("Please create donkeychainer.yml in the current directory. See donkeychainer.sample.yml for your reference.")
+        raise
+
     np.random.seed(1)
     args = docopt(__doc__)
-    cfg = {}
 
-    tub = args['--tub']
-    use_ideep = args['--use_ideep']
-    img_mask_path = args['--mask']
+    tubs = args['--tub']
 
     if args['view']:
-        view(cfg, tub, img_mask_path)
+        view(cfg, tubs)
 
     elif args['infer']:
         model_path = args['--model']
-        infer(cfg, tub, model_path, use_ideep, img_mask_path)
+        infer(cfg, tubs, model_path)
 
     elif args['train']:
         new_model_path = args['--model']
-        train(cfg, tub, new_model_path, use_ideep, img_mask_path)
+        train(cfg, tubs, new_model_path)
 

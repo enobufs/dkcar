@@ -22,7 +22,8 @@ RUN pip3 install \
     docopt \
     pillow \
     matplotlib \
-    opencv-python
+    opencv-python \
+    pyyaml
 
 USER ${DEFAULT_USER}
 WORKDIR /home/${DEFAULT_USER}

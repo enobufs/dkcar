@@ -1,0 +1,10 @@
+# Global settings
+gpu: -1
+mask: ./image_mask.jpg
+use_ideep: false
+
+# Training settings
+train:
+    batchsize: 1
+    epochs: 30
+
