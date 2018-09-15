@@ -21,6 +21,7 @@ import time
 
 from donkeychainer import dataset as ds
 from donkeychainer import model
+from donkeychainer import tool
 
 import numpy as np
 import matplotlib
@@ -33,6 +34,7 @@ from chainer import training
 from chainer import functions as F
 from chainer.training import extensions
 
+Model = model.Linear
 
 def view(cfg, tub_names, image_mask_path=None):
     mask = None
@@ -58,7 +60,7 @@ def infer(cfg, tub_names, model_path, use_ideep=False, image_mask_path=None):
     gpu = -1
     mask = None
 
-    m = model.Linear()
+    m = Model()
     print('loading model from {}'.format(model_path))
     chainer.serializers.load_npz(model_path, m)
 
@@ -127,6 +129,8 @@ def train(cfg, tub_names, new_model_path, use_ideep=False, image_mask_path=None)
     resume = False
     mask = None
 
+    out_dir = tool.make_output_dir('results')
+
     if image_mask_path:
         print('Using image mask at:', image_mask_path)
         mask = ds.load_image(image_mask_path)
@@ -135,7 +139,7 @@ def train(cfg, tub_names, new_model_path, use_ideep=False, image_mask_path=None)
 
     train, test = ds.split_data(dataset, ratio=0.7)
 
-    m = model.Linear()
+    m = Model()
 
     if use_ideep:
         # Enable iDeep's function computations
@@ -155,7 +159,7 @@ def train(cfg, tub_names, new_model_path, use_ideep=False, image_mask_path=None)
     updater = training.updaters.StandardUpdater(
             train_iter, optimizer, device=gpu, loss_func=m.get_loss_func())
 
-    trainer = training.Trainer(updater, (epochs, 'epoch'), out='results')
+    trainer = training.Trainer(updater, (epochs, 'epoch'), out=out_dir)
 
     # Evaluate the model with the test dataset for each epoch
     trainer.extend(extensions.Evaluator(test_iter, m, device=gpu, eval_func=m.get_loss_func()))
