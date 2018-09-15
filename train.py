@@ -91,13 +91,12 @@ def infer(cfg, tub_names, model_path, use_ideep=False, image_mask_path=None):
         with chainer.using_config('train', False):
             startAt = time.time()
             res = m(x)
-            elapsed = time.time() - startAt
-            print('-'*60)
-            print('inferred:', res)
-            print('expected:', data[1])
-            print('elapsed :', elapsed)
+            elapsed = round((time.time() - startAt) * 1000, 3)
+            print("processed data at {}, took {} msec".format(idx, elapsed))
             angle.append((data[1][0], res.data[0,0]))
             throttle.append((data[1][1], res.data[0,1]))
+
+    print("plotting ...")
 
     for d in angle:
         x = d[0]
@@ -203,9 +202,15 @@ def train(cfg, tub_names, new_model_path, use_ideep=False, image_mask_path=None)
     # Run the training
     trainer.run()
 
-    if new_model_path:
-        chainer.serializers.save_npz(new_model_path, m)
 
+    print("Training COMPLETE!")
+
+    if new_model_path is None:
+        new_model_path = "{}/weights.npz".format(out_dir)
+
+    chainer.serializers.save_npz(new_model_path, m)
+    print("Saved trained model at {}".format(new_model_path))
+    print("See other results under {}".format(out_dir))
 
 if __name__ == '__main__':
     np.random.seed(1)
