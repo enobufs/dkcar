@@ -7,6 +7,7 @@ import numpy as np
 from chainer.datasets import tuple_dataset
 #from chainer.datasets import split_dataset
 from chainer.datasets import split_dataset_random
+from chainer.datasets import ConcatenatedDataset
 
 
 # Load image file and return image data in CHW format with [0:1) float32.
@@ -46,36 +47,41 @@ def sort_files(in_files):
 
     return list(map(lambda x: x[1], tmp_list))
 
-def load_data(path, mask=None):
-    #files = [f for f in listdir(path) if isfile(join(path, f))]
-    files = glob.glob(os.path.join(path, "*.json"))
+def load_data(paths, mask=None):
+    path_list = paths.split(',')
+    datasets = []
+    for path in path_list:
+        #files = [f for f in listdir(path) if isfile(join(path, f))]
+        files = glob.glob(os.path.join(path, "*.json"))
 
-    # sort files by sequence number in the file name
-    files = sort_files(files)
+        # sort files by sequence number in the file name
+        files = sort_files(files)
 
-    images = []
-    labels = []
-    prev_image = None
-    prev_label = None
+        images = []
+        labels = []
+        prev_image = None
+        prev_label = None
 
-    for file_name in files:
-        with open(file_name) as f:
-            data = json.load(f)
+        for file_name in files:
+            with open(file_name) as f:
+                data = json.load(f)
 
-            image_path = os.path.join(path, data['cam/image_array'])
-            img = load_image(image_path)
-            if mask is not None:
-                try:
-                    img = mask_image(img, mask)
-                except:
-                    print("Error when processing image file at", image_path)
-                    raise
-            images.append((img, prev_image, prev_label))
-            prev_image = img;
-            prev_label = (data['user/angle'], data['user/throttle'])
-            labels.append(prev_label)
+                image_path = os.path.join(path, data['cam/image_array'])
+                img = load_image(image_path)
+                if mask is not None:
+                    try:
+                        img = mask_image(img, mask)
+                    except:
+                        print("Error when processing image file at", image_path)
+                        raise
+                images.append((img, prev_image, prev_label))
+                prev_image = img;
+                prev_label = (data['user/angle'], data['user/throttle'])
+                labels.append(prev_label)
 
-    return tuple_dataset.TupleDataset(images, labels)
+        datasets.append(tuple_dataset.TupleDataset(images, labels))
+
+    return ConcatenatedDataset(*datasets)
 
 def split_data(dataset, ratio=0.7):
     split_at = int(len(dataset) * ratio)
