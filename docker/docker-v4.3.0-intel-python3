@@ -14,6 +14,9 @@ RUN apt-get update && \
     python3-tk \
     vim git zip unzip tree
 
+# Set local time to US/Pacific, because that's where I live!
+RUN rm -f /etc/localtime && ln -s /usr/share/zoneinfo/US/Pacific /etc/localtime
+
 RUN pip3 install \
     virtualenv \
     docopt \
