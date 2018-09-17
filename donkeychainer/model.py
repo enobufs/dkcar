@@ -103,10 +103,10 @@ class Simple(Chain):
         h = F.max_pooling_2d(h, ksize=3, stride=2)
         h = self.l1(h)
 
-        throttle = 0.5 * F.sigmoid(h[:,0:1])
-        angle_mag = 0.5 * F.sigmoid(h[:,1:2])
-        angle_direction = F.tanh(h[:,2:3])
-        return F.concat((throttle,angle_mag*angle_direction))
+        throttle = F.sigmoid(h[:,0:1])
+        angle_plus = 0.5 * F.sigmoid(h[:,1:2])
+        angle_minus = 0.5 * F.sigmoid(h[:,2:3])
+        return F.concat((throttle,angle_plus - angle_minus))
 
 
 

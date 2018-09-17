@@ -36,7 +36,8 @@ from chainer.training import extensions
 import yaml
 from collections import defaultdict
 
-Model = model.Linear
+#Model = model.Linear
+Model = model.Simple
 
 def view(cfg, tub_names):
     mask = None
