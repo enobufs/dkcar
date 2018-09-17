@@ -47,7 +47,7 @@ def sort_files(in_files):
 
     return list(map(lambda x: x[1], tmp_list))
 
-def load_data(paths, mask=None):
+def load_data(paths, mask=None,concat_old_img=False,concat_old_label=False):
     path_list = paths.split(',')
     datasets = []
     for path in path_list:
@@ -65,19 +65,34 @@ def load_data(paths, mask=None):
         for file_name in files:
             with open(file_name) as f:
                 data = json.load(f)
-
                 image_path = os.path.join(path, data['cam/image_array'])
                 img = load_image(image_path)
+                label = np.array((data['user/angle'], data['user/throttle']),np.float32)
                 if mask is not None:
                     try:
                         img = mask_image(img, mask)
                     except:
                         print("Error when processing image file at", image_path)
                         raise
-                images.append((img, prev_image, prev_label))
-                prev_image = img;
-                prev_label = (data['user/angle'], data['user/throttle'])
-                labels.append(prev_label)
+                if concat_old_img or concat_old_img:
+                    temp_img = img
+                    if prev_image is None:#first call
+                        pass
+                    else:
+                        if concat_old_img:
+                            temp_img = np.concatenate((temp_img,prev_image),0)
+                        if concat_old_label:
+                            _,h,w = temp_img.shape
+                            n_labels = prev_label.shape[0]
+                            temp_img = np.concatenate((temp_img,np.broadcast_to(
+                                np.reshape(prev_label,(n_labels,1,1)),(n_labels,h,w))),0)
+                        images.append(temp_img)
+                        labels.append(label)
+                    prev_label = label
+                    prev_image = img
+                else:
+                    images.append(img)
+                    labels.append(label)
 
         datasets.append(tuple_dataset.TupleDataset(images, labels))
 
