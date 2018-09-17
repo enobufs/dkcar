@@ -2,7 +2,7 @@
 
 ## Features
 * Uses Chainer for training
-* Intel's iDeep (MKL-DNN) is supported
+* In addition to training with GPU, Intel's iDeep (MKL-DNN) is supported.
 
 ## Installation
 First you will need to install donkeycar SDK (python package):
@@ -22,6 +22,21 @@ cd dkcar
 git checkout feature/chainer
 ```
 
+## Description of files
+### `manage.py`
+A collection of operations to be run on donkey car.
+Commands:
+* drive
+* train (to be removed)
+
+
+### `local.py`
+A collection of operations to be run on host PC. 
+Commands:
+* train
+* infer
+
+
 ## Training
 
 First, copy your data under `./data` folder inside `dkcar` project. For example
@@ -32,12 +47,12 @@ cp -r <my_tub_folder> `project-parent-folder`/dkcar/data/tub_20180909_1
 
 Then, run the following command:
 ```
-python train.py train --tub ./data/tub_20180909_1 --model ./models/tub_2010909_1
+python local.py train --tub ./data/tub_20180909_1 --model ./models/tub_2010909_1
 ```
 
 If your environment has ideep4py installed, you can add `--use_ideep` flag, like this:
 ```
-python train.py train --tub ./data/tub_20180909_1 --model ./models/tub_2010909_1 --use_ideep
+python local.py train --tub ./data/tub_20180909_1 --model ./models/tub_2010909_1 --use_ideep
 ```
 
 ## Training with Docoker
@@ -55,12 +70,12 @@ make docker-shell
 cd dkcar
 
 # Run the training
-python train.py train --tub ./data/tub_20180909_1 --model ./models/tub_2010909_1 --use_ideep
+python local.py train --tub ./data/tub_20180909_1 --model ./models/tub_2010909_1 --use_ideep
 ```
 > IDeep is installed on this image.
 
 ## TODO
 * The model `Line` is not working correctly yet
 * Implement `Categorical` - the one equivalent to KerasCategorical in the donkey@2.5.1.
-* Integrate the train.py into manage.py (donkey car's main routine).
+* Integrate the local.py into manage.py (donkey car's main routine).
 
