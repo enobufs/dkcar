@@ -74,7 +74,7 @@ def load_data(paths, mask=None,concat_old_img=False,concat_old_label=False):
                     except:
                         print("Error when processing image file at", image_path)
                         raise
-                if concat_old_img or concat_old_img:
+                if concat_old_img or concat_old_label:
                     temp_img = img
                     if prev_image is None:#first call
                         pass
