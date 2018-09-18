@@ -56,14 +56,6 @@ class Linear(Chain):
 
     def get_loss_func(self):
         def lf(X, Y):
-            # Now, X[n] is a tuple of (where n being a batch index):
-            # X[n][0] image: current image
-            # X[n][1] prev_image: previous image
-            # X[n][2] prev_label: (previous angle, previous throttle)
-
-            # Currently, we only use X[n][0].
-            # Conver to a batch of current images, of type ndarray
-            X = np.array(list(map(lambda x: x[0], X)))
             A = self(X)
             error = Y - A
             loss = F.sum(error**2)
@@ -106,20 +98,12 @@ class Simple(Chain):
         throttle = F.sigmoid(h[:,0:1])
         angle_plus = 0.5 * F.sigmoid(h[:,1:2])
         angle_minus = 0.5 * F.sigmoid(h[:,2:3])
-        return F.concat((throttle,angle_plus - angle_minus))
+        return F.concat((angle_plus - angle_minus, throttle))
 
 
 
     def get_loss_func(self):
         def lf(X, Y):
-            # Now, X[n] is a tuple of (where n being a batch index):
-            # X[n][0] image: current image
-            # X[n][1] prev_image: previous image
-            # X[n][2] prev_label: (previous angle, previous throttle)
-
-            # Currently, we only use X[n][0].
-            # Conver to a batch of current images, of type ndarray
-            X = np.array(list(map(lambda x: x[0], X)))
             A = self(X)
             loss = F.mean_squared_error(A, Y.astype(np.float32))
             chainer.report({'loss': loss}, observer=self)
