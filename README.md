@@ -74,6 +74,18 @@ python local.py train --tub ./data/tub_20180909_1 --model ./models/tub_2010909_1
 ```
 > IDeep is installed on this image.
 
+## View dataset
+You can run the following command to view dataset in the specified folder.
+```
+python local.py view --tub ./data/tub_20180909_1
+```
+
+## Velocity detection (EXPERIMENTAL)
+Run the following command to detect velocity from images in the specified folder.
+```
+python local.py detect-velocity --tub ./data/tub_20180909_1
+```
+
 ## TODO
 * The model `Line` is not working correctly yet
 * Implement `Categorical` - the one equivalent to KerasCategorical in the donkey@2.5.1.

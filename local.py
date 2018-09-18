@@ -228,6 +228,10 @@ def detect_velocity(cfg, tub_names):
 
     for data in dataset:
         image = data[0];
+        image = np.array(image * 255, dtype=np.uint8) # [0,1) to [0,255]
+        image = image.transpose(1, 2, 0) # CHW to HWC
+        image = image[...,::-1] # RBG to BGR
+        image = image.copy()
 
         velocity, top_view, hsv_bgr = get_velocity(image)
         print('velocity:', velocity)
@@ -249,7 +253,7 @@ def detect_velocity(cfg, tub_names):
         cv2.imshow('Velocity Detection using Optical Flow', vis)
 
         k = cv2.waitKey(30) & 0xff
-        if abort or k == 27: # if ESC
+        if k == 27: # if ESC
             break
 
 if __name__ == '__main__':

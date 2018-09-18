@@ -83,7 +83,7 @@ def make_velocity_detector():
     LBASE_WIDTH = 320   # Lower-base width
     UOFFSET = 50        # Upper-base margin
     LOFFSET = 20        # Lower-base margin
-    MAX_ACC = 0.2       # Max possible acceleration
+    MAX_ACC = 0.4       # Max possible acceleration
 
     SRC_UL = [(WIDTH - UBASE_WIDTH) / 2, UOFFSET]
     SRC_LL = [(WIDTH - LBASE_WIDTH) / 2, HEIGHT - LOFFSET]
@@ -97,8 +97,6 @@ def make_velocity_detector():
 
     VELOCITY_CUTOFF_PCT = 67
 
-    abort = False
-
     pts1 = np.float32([SRC_UL, SRC_LL, SRC_UR, SRC_LR])
     pts2 = np.float32([DST_UL, DST_LL, DST_UR, DST_LR])
 
@@ -109,12 +107,7 @@ def make_velocity_detector():
 
     def get_velocity(image):
         """Detect velocity from images"""
-        global abort
         nonlocal prev, v_last
-
-        image = np.array(image * 255, dtype=np.uint8) # [0,1) to [0,255]
-        image = image[...,::-1] # RBG to BGR
-        image = image.transpose(1, 2, 0) # CHW to HWC
 
         curr = cv2.warpPerspective(image, M, (160, 120))
         curr_bgr = np.copy(curr)
@@ -155,6 +148,7 @@ def make_velocity_detector():
 
         mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
 
+        mag[mag < 0.2] = 0
         v = mag * np.sin(ang)
 
         ######################
