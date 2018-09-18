@@ -6,6 +6,7 @@ Usage:
     train.py (view) [--tub=<tub1,tub2,..tubn>]
     train.py (infer) [--tub=<tub1,tub2,..tubn>] [--model=<model>]
     train.py (train) [--tub=<tub1,tub2,..tubn>] [--model=<model>] [--base_model=<base_model>]
+    train.py (detect-velocity) [--tub=<tub1,tub2,..tubn>]
 
 Options:
     -h --help        Show this screen.
@@ -22,6 +23,7 @@ import time
 from donkeychainer import dataset as ds
 from donkeychainer import model
 from donkeychainer import tool
+from donkeychainer import cvtool as cvt
 
 import numpy as np
 import matplotlib
@@ -36,8 +38,8 @@ from chainer.training import extensions
 import yaml
 from collections import defaultdict
 
-#Model = model.Linear
-Model = model.Simple
+Model = model.Linear
+#Model = model.Simple
 
 def view(cfg, tub_names):
     mask = None
@@ -49,7 +51,7 @@ def view(cfg, tub_names):
     dataset = ds.load_data(tub_names, mask)
 
     for data in dataset:
-        x = data[0][0]; # (3, 120, 160)
+        x = data[0]; # (3, 120, 160)
         #x = x[:,40:]
 
         x = x.transpose(1, 2, 0)
@@ -90,7 +92,7 @@ def infer(cfg, tub_names, model_path):
         #    break
 
         # Infer the first image
-        x = data[0][0];
+        x = data[0];
         x = chainer.Variable(x.reshape(1, 3, 120, 160))
         with chainer.using_config('train', False):
             startAt = time.time()
@@ -217,6 +219,39 @@ def train(cfg, tub_names, new_model_path):
     print("Saved trained model at {}".format(new_model_path))
     print("See other results under {}".format(out_dir))
 
+def detect_velocity(cfg, tub_names):
+    mask = None
+
+    dataset = ds.load_data(tub_names, mask)
+
+    get_velocity = cvt.make_velocity_detector()
+
+    for data in dataset:
+        image = data[0];
+
+        velocity, top_view, hsv_bgr = get_velocity(image)
+        print('velocity:', velocity)
+
+        if velocity >= 0:
+            cv2.rectangle(  image,
+                            (80, 0),
+                            (int(velocity * 8) + 80, 4),
+                            (0, 0, 255),
+                            cv2.FILLED)
+        else:
+            cv2.rectangle(  image,
+                            (80, 0),
+                            (int(velocity * 8) + 80, 4),
+                            (255, 0, 0),
+                            cv2.FILLED)
+
+        vis = np.concatenate((image, top_view, hsv_bgr), axis=1)
+        cv2.imshow('Velocity Detection using Optical Flow', vis)
+
+        k = cv2.waitKey(30) & 0xff
+        if abort or k == 27: # if ESC
+            break
+
 if __name__ == '__main__':
     # Default config
     cfg = {
@@ -250,4 +285,7 @@ if __name__ == '__main__':
     elif args['train']:
         new_model_path = args['--model']
         train(cfg, tubs, new_model_path)
+
+    elif args['detect-velocity']:
+        detect_velocity(cfg, tubs)
 
