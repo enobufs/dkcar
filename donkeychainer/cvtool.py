@@ -71,7 +71,7 @@ def extend_point(x1, y1, x2, y2, length):
     y = y2 + (y2 - y1) / line_len * length
     return x, y
 
-def make_velocity_detector():
+def make_velocity_detector(debug=False):
     """Velocity detector factory."""
 
     WIDTH = 160         # With of input image
@@ -107,18 +107,22 @@ def make_velocity_detector():
 
     def get_velocity(image):
         """Detect velocity from images"""
-        nonlocal prev, v_last
+        nonlocal prev, v_last, debug
+        hsv_bgr = None
+        top_view = None
 
         curr = cv2.warpPerspective(image, M, (160, 120))
-        curr_bgr = np.copy(curr)
+
+        if debug:
+            top_view = np.copy(curr)
 
         """
 	# find the colors within the specified boundaries and apply
 	# the mask
         y_l = np.array([48, 121, 133], dtype = "uint8")
         y_h = np.array([89, 224, 247], dtype = "uint8")
-        mask = cv2.inRange(curr_bgr, y_l, y_h)
-        curr = cv2.bitwise_and(curr_bgr, curr_bgr, mask = mask)
+        mask = cv2.inRange(top_view, y_l, y_h)
+        curr = cv2.bitwise_and(top_view, top_view, mask = mask)
         """
 
         curr = cv2.cvtColor(curr, cv2.COLOR_BGR2GRAY)
@@ -132,7 +136,7 @@ def make_velocity_detector():
         if prev is None:
             prev = curr
             v_last = 0.0
-            return v_last, curr_bgr, np.zeros_like(image)
+            return v_last, top_view, np.zeros_like(image)
 
         flow = cv2.calcOpticalFlowFarneback(
             prev,   # Previous image
@@ -151,30 +155,32 @@ def make_velocity_detector():
         mag[mag < 0.2] = 0
         v = mag * np.sin(ang)
 
-        ######################
-        ## Histogram for mag
-        ar = np.arange(-20.0, 20.0, 0.50, dtype=np.float)
-        his = np.histogram(v, bins=ar)
 
-        for i, n in enumerate(his[0]):
-            bgr = (255, 255, 0)
-            if his[1][i] < 0:
-                bgr = (0, 255, 255)
+        if debug:
+            ######################
+            ## Histogram for mag
+            ar = np.arange(-20.0, 20.0, 0.50, dtype=np.float)
+            his = np.histogram(v, bins=ar)
 
-            #print('[{}] {} - {}'.format(i, n, his[1][i]))
-            cv2.rectangle(   image, #curr_bgr,
-                            (i*2, HEIGHT),
-                            (i*2, HEIGHT - int(n / 10)),
-                            bgr, #(0, 255, 255),
-                            cv2.FILLED)
+            for i, n in enumerate(his[0]):
+                bgr = (255, 255, 0)
+                if his[1][i] < 0:
+                    bgr = (0, 255, 255)
 
-        hsv = np.zeros_like(image)
-        hsv[..., 0] = ang * 180 / np.pi / 2
-        hsv[..., 1] = 255
-        hsv[..., 2] = cv2.normalize(np.abs(v), None, 0, 255, cv2.NORM_MINMAX)
-        hsv_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-        ##
-        ######################
+                #print('[{}] {} - {}'.format(i, n, his[1][i]))
+                cv2.rectangle(   image, #top_view,
+                                (i*2, HEIGHT),
+                                (i*2, HEIGHT - int(n / 10)),
+                                bgr, #(0, 255, 255),
+                                cv2.FILLED)
+
+            hsv = np.zeros_like(image)
+            hsv[..., 0] = ang * 180 / np.pi / 2
+            hsv[..., 1] = 255
+            hsv[..., 2] = cv2.normalize(np.abs(v), None, 0, 255, cv2.NORM_MINMAX)
+            hsv_bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+            ##
+            ######################
 
         v_abs = np.absolute(v)
         v = v[v_abs >= np.percentile(v_abs, VELOCITY_CUTOFF_PCT)]
@@ -194,7 +200,7 @@ def make_velocity_detector():
 
         prev = curr
         v_last = v_avg
-        return v_last, curr_bgr, hsv_bgr
+        return v_last, top_view, hsv_bgr
 
     return get_velocity
 

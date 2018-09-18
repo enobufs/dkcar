@@ -224,7 +224,7 @@ def detect_velocity(cfg, tub_names):
 
     dataset = ds.load_data(tub_names, mask)
 
-    get_velocity = cvt.make_velocity_detector()
+    get_velocity = cvt.make_velocity_detector(debug=True)
 
     for data in dataset:
         image = data[0];
@@ -234,7 +234,7 @@ def detect_velocity(cfg, tub_names):
         image = image.copy()
 
         velocity, top_view, hsv_bgr = get_velocity(image)
-        print('velocity:', velocity)
+        print('velocity: {} [px/frame]'.format(velocity))
 
         if velocity >= 0:
             cv2.rectangle(  image,
